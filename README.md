@@ -26,6 +26,26 @@ python src/train.py --config configs/default.yaml
 python src/evaluate.py --checkpoint checkpoints/best_model.pt
 ```
 
+### Train with your own CSV dataset
+
+Set the `data` section in your config:
+
+```yaml
+data:
+	source: csv
+	csv_path: data/my_dataset.csv
+	target_col: target
+	test_size: 0.15
+	val_size: 0.15
+	random_seed: 42
+```
+
+Then run training with that config file:
+
+```bash
+python src/train.py --config configs/default.yaml
+```
+
 ## Project Structure
 
 ```

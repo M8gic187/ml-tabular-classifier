@@ -15,7 +15,7 @@ from sklearn.metrics import (
 )
 from torch.utils.data import DataLoader
 
-from dataset import load_adult_income, preprocess, build_loaders
+from dataset import load_dataset, preprocess, build_loaders
 from model import MLP
 
 
@@ -42,14 +42,15 @@ def evaluate(checkpoint_path: str, config: dict):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # ── Load data ──────────────────────────────────────────────────────────────
-    df, target_col = load_adult_income()
     dcfg = config["data"]
+    df, target_col, source = load_dataset(dcfg)
     train_ds, val_ds, test_ds, input_dim, num_classes = preprocess(
         df, target_col,
         test_size=dcfg["test_size"],
         val_size=dcfg["val_size"],
         random_seed=dcfg["random_seed"],
     )
+    print(f"Data source: {source}")
     tcfg = config["training"]
     _, _, test_loader = build_loaders(
         train_ds, val_ds, test_ds, batch_size=tcfg["batch_size"]
@@ -94,8 +95,10 @@ def evaluate(checkpoint_path: str, config: dict):
 
 
 def _parse_args():
-    parser = argparse.ArgumentParser(description="Evaluate a saved MLP checkpoint")
-    parser.add_argument("--checkpoint", required=True, help="Path to .pt checkpoint")
+    parser = argparse.ArgumentParser(
+        description="Evaluate a saved MLP checkpoint")
+    parser.add_argument("--checkpoint", required=True,
+                        help="Path to .pt checkpoint")
     parser.add_argument("--config", default="configs/default.yaml")
     return parser.parse_args()
 

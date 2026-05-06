@@ -11,7 +11,7 @@ import yaml
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
-from dataset import load_adult_income, preprocess, build_loaders
+from dataset import load_dataset, preprocess, build_loaders
 from model import MLP, count_parameters
 
 
@@ -50,19 +50,21 @@ def train(config: dict):
     print(f"Device: {device}")
 
     # ── Data ──────────────────────────────────────────────────────────────────
-    df, target_col = load_adult_income()
     dcfg = config["data"]
+    df, target_col, source = load_dataset(dcfg)
     train_ds, val_ds, test_ds, input_dim, num_classes = preprocess(
         df, target_col,
         test_size=dcfg["test_size"],
         val_size=dcfg["val_size"],
         random_seed=dcfg["random_seed"],
     )
+    print(f"Data source: {source}")
     tcfg = config["training"]
     train_loader, val_loader, _ = build_loaders(
         train_ds, val_ds, test_ds, batch_size=tcfg["batch_size"]
     )
-    print(f"Train: {len(train_ds):,}  Val: {len(val_ds):,}  Test: {len(test_ds):,}")
+    print(
+        f"Train: {len(train_ds):,}  Val: {len(val_ds):,}  Test: {len(test_ds):,}")
     print(f"Input dim: {input_dim}  Classes: {num_classes}")
 
     # ── Model ─────────────────────────────────────────────────────────────────
@@ -86,7 +88,6 @@ def train(config: dict):
         optimizer,
         patience=tcfg["lr_scheduler_patience"],
         factor=tcfg["lr_scheduler_factor"],
-        verbose=False,
     )
 
     # ── Training loop with early stopping ────────────────────────────────────
@@ -95,11 +96,13 @@ def train(config: dict):
 
     best_val_loss = float("inf")
     patience_counter = 0
-    history = {"train_loss": [], "val_loss": [], "train_acc": [], "val_acc": []}
+    history = {"train_loss": [], "val_loss": [],
+               "train_acc": [], "val_acc": []}
 
     for epoch in range(1, tcfg["epochs"] + 1):
         t0 = time.time()
-        train_loss, train_acc = _epoch(model, train_loader, criterion, optimizer, device)
+        train_loss, train_acc = _epoch(
+            model, train_loader, criterion, optimizer, device)
         val_loss, val_acc = _epoch(model, val_loader, criterion, None, device)
 
         scheduler.step(val_loss)
@@ -141,7 +144,8 @@ def train(config: dict):
 
 
 def _parse_args():
-    parser = argparse.ArgumentParser(description="Train tabular MLP classifier")
+    parser = argparse.ArgumentParser(
+        description="Train tabular MLP classifier")
     parser.add_argument("--config", default="configs/default.yaml")
     return parser.parse_args()
 

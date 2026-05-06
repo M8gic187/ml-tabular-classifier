@@ -1,8 +1,9 @@
 data:
-  source: adult_income    # adult_income | csv
-  dataset: adult_income   # backward-compatible alias (kept for existing configs)
-  csv_path: null          # used when source=csv
-  target_col: null        # used when source=csv
+  source: csv
+  dataset: telco_churn_csv
+  csv_path: data/telco_churn.csv
+  target_col: Churn
+  drop_columns: []
   test_size: 0.15
   val_size: 0.15
   random_seed: 42
@@ -23,5 +24,5 @@ training:
 
 paths:
   checkpoint_dir: checkpoints/
-  best_model: checkpoints/best_model.pt
-  final_model: checkpoints/final_model.pt
+  best_model: checkpoints/telco_csv_best_model.pt
+  final_model: checkpoints/telco_csv_final_model.pt
