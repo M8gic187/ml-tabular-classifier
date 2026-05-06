@@ -1,0 +1,24 @@
+data:
+  dataset: adult_income   # UCI Adult Income dataset via sklearn
+  test_size: 0.15
+  val_size: 0.15
+  random_seed: 42
+
+model:
+  hidden_dims: [256, 128, 64]
+  dropout: 0.3
+  batch_norm: true
+
+training:
+  epochs: 100
+  batch_size: 512
+  learning_rate: 1.0e-3
+  weight_decay: 1.0e-4
+  early_stopping_patience: 10
+  lr_scheduler_patience: 5
+  lr_scheduler_factor: 0.5
+
+paths:
+  checkpoint_dir: checkpoints/
+  best_model: checkpoints/best_model.pt
+  final_model: checkpoints/final_model.pt
