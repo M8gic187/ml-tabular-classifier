@@ -1,8 +1,9 @@
+## Quick cross-validation preset: 3-fold, reduced epochs for fast iteration.
 data:
-  source: adult_income    # adult_income | csv
-  dataset: adult_income   # backward-compatible alias (kept for existing configs)
-  csv_path: null          # used when source=csv
-  target_col: null        # used when source=csv
+  source: adult_income
+  dataset: adult_income
+  csv_path: null
+  target_col: null
   test_size: 0.15
   val_size: 0.15
   random_seed: 42
@@ -13,12 +14,12 @@ model:
   batch_norm: true
 
 training:
-  epochs: 100
+  epochs: 30
   batch_size: 512
   learning_rate: 1.0e-3
   weight_decay: 1.0e-4
-  early_stopping_patience: 10
-  lr_scheduler_patience: 5
+  early_stopping_patience: 5
+  lr_scheduler_patience: 3
   lr_scheduler_factor: 0.5
 
 paths:
@@ -27,6 +28,6 @@ paths:
   final_model: checkpoints/final_model.pt
 
 cross_validation:
-  n_splits: 5
+  n_splits: 3
   random_seed: 42
-  output: checkpoints/cv_results.json
+  output: checkpoints/cv_quick_results.json
