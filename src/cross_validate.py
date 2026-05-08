@@ -1,6 +1,10 @@
 """Stratified K-Fold cross-validation engine for the tabular MLP pipeline."""
 
+import argparse
+import json
 import time
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 import torch
@@ -136,3 +140,83 @@ def run_kfold(
         fold_results.append(result)
 
     return fold_results
+
+
+def aggregate_fold_results(fold_results: list[dict]) -> dict[str, Any]:
+    """Compute mean ± std summary statistics across all folds."""
+    metrics = ["val_loss", "val_acc", "elapsed_s"]
+    summary: dict[str, Any] = {"folds": fold_results, "aggregate": {}}
+
+    for metric in metrics:
+        values = [r[metric] for r in fold_results]
+        summary["aggregate"][metric] = {
+            "mean": float(np.mean(values)),
+            "std": float(np.std(values)),
+            "min": float(np.min(values)),
+            "max": float(np.max(values)),
+        }
+
+    acc_mean = summary["aggregate"]["val_acc"]["mean"]
+    acc_std = summary["aggregate"]["val_acc"]["std"]
+    loss_mean = summary["aggregate"]["val_loss"]["mean"]
+    print(f"\n{'='*55}")
+    print(f"  CV Summary ({len(fold_results)} folds)")
+    print(f"  val_acc  : {acc_mean:.4f} ± {acc_std:.4f}")
+    print(f"  val_loss : {loss_mean:.4f}")
+    print(f"{'='*55}")
+
+    return summary
+
+
+def save_cv_results(summary: dict[str, Any], output_path: str) -> None:
+    """Write cross-validation summary to a JSON file."""
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(summary, f, indent=2)
+    print(f"CV results saved → {path}")
+
+
+def _parse_args():
+    parser = argparse.ArgumentParser(
+        description="K-Fold cross-validation for tabular MLP classifier"
+    )
+    parser.add_argument("--config", default="configs/default.yaml",
+                        help="Path to YAML config file")
+    parser.add_argument("--folds", type=int, default=5,
+                        help="Number of CV folds (default: 5)")
+    parser.add_argument("--seed", type=int, default=42,
+                        help="Random seed for fold splitting")
+    parser.add_argument("--output", default="checkpoints/cv_results.json",
+                        help="Path to save JSON results")
+    return parser.parse_args()
+
+
+if __name__ == "__main__":
+    import yaml
+    from dataset import load_dataset, preprocess
+
+    args = _parse_args()
+    with open(args.config) as f:
+        config = yaml.safe_load(f)
+
+    dcfg = config["data"]
+    df, target_col, source = load_dataset(dcfg)
+    print(f"Data source: {source}")
+
+    # Preprocess to get encoded X and y without the train/val/test split
+    from sklearn.preprocessing import LabelEncoder
+    import pandas as pd
+
+    df = df.copy()
+    le = LabelEncoder()
+    df[target_col] = le.fit_transform(df[target_col].astype(str))
+    for col in df.select_dtypes(include=["object", "category"]).columns:
+        df[col] = LabelEncoder().fit_transform(df[col].astype(str))
+
+    X = df.drop(columns=[target_col]).values.astype("float32")
+    y = df[target_col].values.astype("int64")
+
+    fold_results = run_kfold(X, y, config, n_splits=args.folds, random_seed=args.seed)
+    summary = aggregate_fold_results(fold_results)
+    save_cv_results(summary, args.output)
